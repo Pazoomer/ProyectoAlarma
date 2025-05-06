@@ -1,0 +1,107 @@
+/*
+ * GestionRed.ino
+ *
+ * Este modulo permite la conexión a intenet
+ * y la configuración asociada a la pagina web
+ */
+#include "ESPAsyncWebServer.h"
+extern AsyncWebServer server;
+void noHallada(AsyncWebServerRequest* request);
+
+/*
+* Conecta el microcontrolador ESP32 a una red WiFi
+*/
+void conectaRedWiFi(const char* ssid, const char* password) {
+  // Conexion a la red
+  WiFi.begin(ssid, password);
+  Serial.print("Conectandose a la red ");
+  Serial.print(ssid);
+  Serial.println(" ...");
+  // Mientras no se ha conectado a la red WiFi
+  while (WiFi.status() != WL_CONNECTED) {
+    delay(1000);
+    Serial.print(".");
+  }
+  Serial.println('\n');
+  Serial.println("Connexion establecida");
+  // Obten la direccion IP del microcontrolador ESP32
+  Serial.print("Direccion IP del servidor web: ");
+  Serial.println(WiFi.localIP());
+}
+
+/**
+* Esta funcion monta el sistema de archivos LittleFS
+*/
+void inicializaLittleFS() {
+  if (!LittleFS.begin(true)) {
+    Serial.println("Ocurrió un error al montar LittleFS");
+  } else {
+    Serial.println("Se monto LittleFS con exito");
+  }
+}
+
+/*
+* Mapea las diferentes funcionalidades del servidor a los URL
+* con las que seran invocadas
+*/
+void configuraServidor() {
+  // Carga los archivos estaticos desde la raiz del sistema de archivos LittleFS
+  server.serveStatic("/", LittleFS, "/");
+  // Si se invoca al servidor con la URL: "direccionIP_ServidorWeb/"
+  server.on("/", HTTP_GET, [](AsyncWebServerRequest* request) {
+    // Despliega las URLs/paginas
+    request->send(LittleFS, "/index.html", "text/html");
+  });
+  // Si se invoca al servidor con la URL: "direccionIP_ServidorWeb/u"
+  server.on("/u", HTTP_GET, [](AsyncWebServerRequest* request) {
+    //Despliega una página con la última lectura de la luminosidad.
+    request->send(LittleFS, "/luz.html", "text/html", false,
+                  processor);
+  });
+  // Si se invoca al servidor con la URL: "direccionIP_ServidorWeb/e"
+  server.on("/e", HTTP_GET, [](AsyncWebServerRequest* request) {
+    // Despliega una página con la última lectura de la luminosidad y
+    // las luminosidades máxima, mínima y promedio de las lecturas del último minuto.
+    request->send(LittleFS, "/promedio.html", "text/html",
+                  false, processor);
+  });
+  // Invoca a la funcion noHallada() si se invoca al servidor con una URL inexistente
+  server.onNotFound(noHallada);
+  server.begin();
+}
+
+/*
+* Esta funcion le envia al cliente una pagina
+* con el mensaje de que la URL solicitada no se encontro
+*/
+void noHallada(AsyncWebServerRequest* request) {
+  // Le envia al cliente el mensaje de respuesta. Recibe como
+  // argumentos:
+  // - 404: El codigo de estado HTTP (indica que no se pudo
+  // atender la solicitud).
+  // - "text/plain": El tipo del contenido del mensaje (texto
+  // plano.
+  // - "URL no encontrada": El cuerpo del mensaje de respuesta,
+  // una cadena con el mensaje "URL no encontrada".
+  request->send(404, "text/plain", "URL no encontrada");
+}
+
+/*
+* Coloca los valores clave en la pagina web
+*/
+String processor(const String& var) {
+  if (var == "LUZ") {
+    return String(luz);
+  }
+  if (var == "MAX") {
+    return String(luzMaxima);
+  }
+  if (var == "MIN") {
+    return String(luzMinima);
+  }
+  if (var == "PROM") {
+    return String(luzPromedio);
+  }
+
+  return String();
+}
