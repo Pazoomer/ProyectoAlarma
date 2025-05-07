@@ -52,12 +52,6 @@ void configuraServidor() {
     // Despliega las URLs/paginas
     request->send(LittleFS, "/index.html", "text/html");
   });
-  // Si se invoca al servidor con la URL: "direccionIP_ServidorWeb/u"
-  server.on("/u", HTTP_GET, [](AsyncWebServerRequest* request) {
-    //Despliega una página con la última lectura de la luminosidad.
-    request->send(LittleFS, "/luz.html", "text/html", false,
-                  processor);
-  });
   // Si se invoca al servidor con la URL: "direccionIP_ServidorWeb/e"
   server.on("/e", HTTP_GET, [](AsyncWebServerRequest* request) {
     // Despliega una página con la última lectura de la luminosidad y
@@ -90,17 +84,53 @@ void noHallada(AsyncWebServerRequest* request) {
 * Coloca los valores clave en la pagina web
 */
 String processor(const String& var) {
-  if (var == "LUZ") {
-    return String(luz);
+  if (var == "ESTADO") {
+    if(estado==0){
+      return "Desactivada";
+    }else if (estado==1){
+      return "Activada";
+    }else{
+      return "Desconocido";
+    }
   }
-  if (var == "MAX") {
-    return String(luzMaxima);
+
+  if (var == "RUIDO") {
+    return String(ruido);
   }
-  if (var == "MIN") {
-    return String(luzMinima);
+  if (var == "RUIDOMAX") {
+    return String(ruidoMaximo);
   }
-  if (var == "PROM") {
-    return String(luzPromedio);
+  if (var == "RUIDOMIN") {
+    return String(ruidoMinimo);
+  }
+  if (var == "RUIDOPROM") {
+    return String(ruidoPromedio);
+  }
+
+  if (var == "MOVIMIENTO") {
+    return String(movimiento);
+  }
+  if (var == "MOVIMIENTOMAX") {
+    return String(movimientoMaximo);
+  }
+  if (var == "MOVIMIENTOMIN") {
+    return String(movimientoMinimo);
+  }
+  if (var == "MOVIMIENTOPROM") {
+    return String(movimientoPromedio);
+  }
+
+  if (var == "MAGNETICO") {
+    return String(magnetico);
+  }
+  if (var == "MAGNETICOMAX") {
+    return String(magneticoMaximo);
+  }
+  if (var == "MAGNETICOMIN") {
+    return String(magneticoMinimo);
+  }
+  if (var == "MAGNETICOPROM") {
+    return String(magneticoPromedio);
   }
 
   return String();
