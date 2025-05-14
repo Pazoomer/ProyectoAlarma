@@ -1,5 +1,5 @@
 # Para correrlo poner esto en terminal: C:\Python313\python.exe GuardarDatosMysql.py 
-
+# cd C:\Github\SistemasEmpotrados\ProyectoAlarma\ProyectoAlarma\CodigoArduino\GuardarDatosMysql
 import serial
 import time
 import pymysql

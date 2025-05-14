@@ -12,7 +12,6 @@
 #include <NTPClient.h>
 #include "GestionDatos.h"
 #include "GestionRed.h"
-#include "GestionPeticiones.h"
 #include "ESPAsyncWebServer.h"
 
 //Configuración de datos
@@ -25,18 +24,17 @@ int dato = 1;
 int nDatos;
 
 //Configuración
-const long PAUSA = 1000;
+const long PAUSA = 2000;
 const unsigned int BAUD_RATE = 115200;
 noDelay pausa(PAUSA);
 
 //Configuración de conexión a internet
-const char* ssid = "MEGACABLE-2E9F";
-const char* password = "Uu5raDYY";
+const char* ssid = "IoT_ITSON";  //MEGACABLE-2E9F   IoT_ITSON
+const char* password = "lv323-iot";    //Uu5raDYY           lv323-iot
 AsyncWebServer server(80);
 
 //COnfiguración de tiempo
 WiFiUDP ntpUDP;
-NTPClient timeClient(ntpUDP, "pool.ntp.org", -21600, 60000);  // UTC-6 para Sonora, México
 
 //Metodos a usar
 void actualizaLectura();
@@ -49,45 +47,52 @@ void activarAlarma();
 void desactivarAlarma();
 
 //Medidas de sensores
-int ruido=0;
-int ruidoMaximo=0;
-int ruidoMinimo=100;
-int ruidoPromedio=0;
+int ruido = 0;
+int ruidoMaximo = 0;
+int ruidoMinimo = 4095;
+int ruidoPromedio = 0;
 
-int movimiento=0;
-int movimientoMaximo=0;
-int movimientoMinimo=100;
-int movimientoPromedio=0;
+int movimiento = 0;
+int movimientoMaximo = 0;
+int movimientoMinimo = 4095;
+int movimientoPromedio = 0;
 
-int magnetico=0;
-int magneticoMaximo=0;
-int magneticoMinimo=100;
-int magneticoPromedio=0;
+int magnetico = 0;
+int magneticoMaximo = 0;
+int magneticoMinimo = 4095;
+int magneticoPromedio = 0;
 
-int estado=0; // 0=Desactivada, 1=Activada
+int estado = 0;  // 0=Desactivada, 1=Activada
 
 //Parametros ajustables (1-10)
 //Sensores
-int sensibilidadRuido=5;  
-int sensibilidadMovimiento=5;
-int sensibilidadMagnetico=5;
+int sensibilidadRuido = 1;
+int sensibilidadMovimiento = 5;
+
 //Actuadores
-int volumenBuzzer=5;  
-int brilloLuz=5;
+int volumenBuzzer = 5;
+int brilloLuz = 5;
 
 //Puertos
-const unsigned int sensorMovimiento = 0;
-const unsigned int SensorMagnetico = 0;
-const unsigned int sensorRuido = 0;
-const unsigned int buzzer = 0;
-const unsigned int luz = 0;
+const unsigned int sensorMovimiento = 4;
+const unsigned int SensorMagnetico = 35;
+const unsigned int sensorRuido = 34;
+const unsigned int buzzer = 25;
+const unsigned int luz = 33;
 
 String comandoSerial = "";
 
 void setup() {
-  Serial.println("Iniciando");
   Serial.begin(BAUD_RATE);
+  Serial.println("Iniciando");
   delay(100);
+
+  pinMode(sensorMovimiento, INPUT);
+  pinMode(SensorMagnetico, INPUT);
+  pinMode(sensorRuido, INPUT);
+
+  pinMode(buzzer, OUTPUT);
+  pinMode(luz, OUTPUT);
 
   Serial.println("Conectandose a internet");
   conectaRedWiFi(ssid, password);
@@ -98,53 +103,19 @@ void setup() {
   Serial.println("Configurando servidor");
   configuraServidor();
 
-  Serial.println("Inicializando el cliente para el tiempo");
-  timeClient.begin();
-
-  Serial.println("Servidor web inicializado");
+  Serial.println("Configuración inicializado");
 }
 
 void loop() {
   if (pausa.update()) {
     if (dato <= N_DATOS) {
 
-      // Actualiza la hora NTP
-      timeClient.update(); 
-      String hora = timeClient.getFormattedTime();
-      time_t epochTime = timeClient.getEpochTime();
-      struct tm *ptm = gmtime((time_t *)&epochTime);
-      int dia = ptm->tm_mday;
-      int mes = ptm->tm_mon + 1;
-      int año = ptm->tm_year + 1900;
-
-      //Lee lo sensores
+      //Lee los sensores
       actualizaLectura();
 
       //Activa la alarma dependiendo de los datos sensados
       revisarAlarma();
 
-      //Impresión de datos Serial
-      nDatos = insertaCola(colaRuido, ruido, TAM_COLA);
-      nDatos = insertaCola(colaMovimiento, movimiento, TAM_COLA);
-      nDatos = insertaCola(colaMagnetico, magnetico, TAM_COLA);
-
-      Serial.printf("[%02d/%02d/%d %s] Estado de la alarma: %d\n", dia, mes, año, hora.c_str(), estado);
-
-      despliegaCola(colaRuido, nDatos);
-      despliegaCola(colaMovimiento, nDatos);
-      despliegaCola(colaMagnetico, nDatos);
-
-      float promedioMovRuido = obtenPromedioMovil(colaRuido, nDatos);
-      float promedioMovMovimiento = obtenPromedioMovil(colaMovimiento, nDatos);
-      float promedioMovMagnetico = obtenPromedioMovil(colaMagnetico, nDatos);
-
-      Serial.print("Promedio movil Ruido: ");
-      Serial.println(promedioMovRuido);
-      Serial.print("Promedio movil Movimiento: ");
-      Serial.println(promedioMovMovimiento);
-      Serial.print("Promedio movil Magnetico: ");
-      Serial.println(promedioMovMagnetico); 
-      
       dato++;
       mandarDatos();
     }
@@ -157,8 +128,9 @@ void loop() {
 */
 void actualizaLectura() {
 
-  ruido=obtenRuido();
-  ruidoPromedio = obtenPromedioMovil(colaRuido, TAM_COLA); 
+  ruido = obtenRuido();
+  nDatos = insertaCola(colaRuido, ruido, TAM_COLA);
+  ruidoPromedio = obtenPromedioMovil(colaRuido, TAM_COLA);
   if (ruido > ruidoMaximo) {
     ruidoMaximo = ruido;
   }
@@ -166,8 +138,9 @@ void actualizaLectura() {
     ruidoMinimo = ruido;
   }
 
-  movimiento=obtenMovimiento();
-  movimientoPromedio = obtenPromedioMovil(colaMovimiento, TAM_COLA); 
+  movimiento = obtenMovimiento();
+  nDatos = insertaCola(colaMovimiento, movimiento, TAM_COLA);
+  movimientoPromedio = obtenPromedioMovil(colaMovimiento, TAM_COLA);
   if (movimiento > movimientoMaximo) {
     movimientoMaximo = movimiento;
   }
@@ -175,8 +148,9 @@ void actualizaLectura() {
     movimientoMinimo = movimiento;
   }
 
-  magnetico=obtenMagnetico();
-  magneticoPromedio = obtenPromedioMovil(colaMagnetico, TAM_COLA); 
+  magnetico = obtenMagnetico();
+  nDatos = insertaCola(colaMagnetico, magnetico, TAM_COLA);
+  magneticoPromedio = obtenPromedioMovil(colaMagnetico, TAM_COLA);
   if (magnetico > magneticoMaximo) {
     magneticoMaximo = magnetico;
   }
@@ -189,114 +163,112 @@ void actualizaLectura() {
 * Esta funcion obtiene el ruido del sensor
 */
 int obtenRuido() {
+  return analogRead(sensorRuido);
 }
 
 /*
 * Esta funcion obtiene el movimiento del sensor
 */
 int obtenMovimiento() {
+  return digitalRead(sensorMovimiento);
 }
 
 /*
 * Esta funcion obtiene el magnetismo del sensor
 */
 int obtenMagnetico() {
+  return analogRead(SensorMagnetico);
 }
 
 /*
 * Revisar si la alarma se debe activar
 */
-void revisarAlarma(){
+void revisarAlarma() {
   //Si ya esta encendida la alarma, no hacer nada
-  if(estado==1){
+  /*
+  if (estado == 1) {
     return;
-  }
+  }*/
   //Comparar si los sensores cumplen la condición para activar la alarma
-  if(sensibilidadRuido*ruido>100){
+  if (ruido >= 1) {
     activarAlarma();
-  }else if(sensibilidadMovimiento*movimiento>100){
+  }
+  //else 
+  //if ((sensibilidadMovimiento/5) * movimiento < 2000) {
+  //  activarAlarma();
+  //} else 
+  else if (magnetico < 2000) {
     activarAlarma();
-  }else if(sensibilidadMagnetico*magnetico>100){
-    activarAlarma();
+  } else {
+    desactivarAlarma();
   }
 }
 
 /*
 * Activa la alarma
 */
-void activarAlarma(){
-  if(estado==1){
+void activarAlarma() {
+  if (estado == 1) {
     return;
   }
-  estado=1;
-  //Activar el buzzer
-  //Activar la luz
+  estado = 1;
+  //Activar el buzzer y luz
+  analogWrite(buzzer, volumenBuzzer * 25);
+  analogWrite(luz, brilloLuz * 25);
   Serial.println("Alarma activada");
 }
 
 /*
 * Desactiva la alarma
 */
-void desactivarAlarma(){
-  if(estado==0){
+void desactivarAlarma() {
+  if (estado == 0) {
     return;
   }
-  estado=0;
-  //Desactivar el buzzer
-  //Desactivar la luz
+  estado = 0;
+  //Desactivar el buzzer y luz
+  analogWrite(buzzer, 0);
+  analogWrite(luz, 0);
   Serial.println("Alarma desactivada");
 }
 
 /*
 * Leer comandos por Serial
 */
-void leerComando(){
+void leerComando() {
   if (Serial.available()) {
     comandoSerial = Serial.readStringUntil('\n');
     comandoSerial.trim();
 
     if (comandoSerial.equalsIgnoreCase("on")) {
       activarAlarma();
-    }
-    else if (comandoSerial.equalsIgnoreCase("off")) {
+    } else if (comandoSerial.equalsIgnoreCase("off")) {
       desactivarAlarma();
-    }
-    else if (comandoSerial.startsWith("mag ")) {
-      int val = comandoSerial.substring(4).toInt();
-      if (val >= 0 && val <= 10) {
-        sensibilidadMagnetico = val;
-        Serial.printf("Sensibilidad Magnetico ajustada a %d\n", val);
-      }
-    }
-    else if (comandoSerial.startsWith("mov ")) {
+    } else if (comandoSerial.startsWith("mov ")) {
       int val = comandoSerial.substring(4).toInt();
       if (val >= 0 && val <= 10) {
         sensibilidadMovimiento = val;
         Serial.printf("Sensibilidad Movimiento ajustada a %d\n", val);
       }
-    }
-    else if (comandoSerial.startsWith("rui ")) {
+    } else if (comandoSerial.startsWith("rui ")) {
       int val = comandoSerial.substring(4).toInt();
       if (val >= 0 && val <= 10) {
         sensibilidadRuido = val;
         Serial.printf("Sensibilidad Ruido ajustada a %d\n", val);
       }
-    }
-    else if (comandoSerial.startsWith("luz ")) {
+    } else if (comandoSerial.startsWith("luz ")) {
       int val = comandoSerial.substring(4).toInt();
       if (val >= 0 && val <= 10) {
         brilloLuz = val;
         Serial.printf("Brillo Luz ajustado a %d\n", val);
       }
-    }
-    else if (comandoSerial.startsWith("vol ")) {
+    } else if (comandoSerial.startsWith("vol ")) {
       int val = comandoSerial.substring(4).toInt();
       if (val >= 0 && val <= 10) {
         volumenBuzzer = val;
         Serial.printf("Volumen Buzzer ajustado a %d\n", val);
       }
-    }
-    else {
+    } else {
       Serial.println("Comando no reconocido");
     }
   }
@@ -305,10 +277,6 @@ void leerComando(){
 /*
 * Envia los datos a un servidor local mysql
 */
-void mandarDatos(){
-   Serial.println("MYSQL ESTADO: " + String(estado) + 
-               " RUIDO: " + String(ruido) + 
-               " MOVIMIENTO: " + String(movimiento) + 
-               " MAGNETICO: " + String(magnetico));
-
+void mandarDatos() {
+  Serial.println("MYSQL ESTADO: " + String(estado) + " RUIDO: " + String(ruido) + " MOVIMIENTO: " + String(movimiento) + " MAGNETICO: " + String(magnetico));
 }

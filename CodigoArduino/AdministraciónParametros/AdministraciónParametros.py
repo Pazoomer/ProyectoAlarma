@@ -32,7 +32,6 @@ class AlarmaGUI:
         ttk.Button(frame, text="Desactivar Alarma (off)", command=lambda: self.send_command("off")).grid(row=0, column=1, padx=5)
 
         ajustes = [
-            ("Magnetico (mag x)", "mag"),
             ("Movimiento (mov x)", "mov"),
             ("Ruido (rui x)", "rui"),
             ("Luz (luz x)", "luz"),

@@ -17,14 +17,22 @@ void conectaRedWiFi(const char* ssid, const char* password) {
   Serial.print("Conectandose a la red ");
   Serial.print(ssid);
   Serial.println(" ...");
+
+  unsigned long tiempoInicio = millis();  // Tiempo de inicio para evitar bucles infinitos
+  unsigned long tiempoLimite = 30000;  // 30 segundos para esperar la conexión
+  
   // Mientras no se ha conectado a la red WiFi
   while (WiFi.status() != WL_CONNECTED) {
     delay(1000);
     Serial.print(".");
+    
+    if (millis() - tiempoInicio > tiempoLimite) {
+      Serial.println("\nTiempo de espera excedido");
+      return;
+    }
   }
-  Serial.println('\n');
-  Serial.println("Connexion establecida");
-  // Obten la direccion IP del microcontrolador ESP32
+  
+  Serial.println("\nConexion establecida");
   Serial.print("Direccion IP del servidor web: ");
   Serial.println(WiFi.localIP());
 }
