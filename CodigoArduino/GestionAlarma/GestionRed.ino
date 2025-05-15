@@ -141,5 +141,19 @@ String processor(const String& var) {
     return String(magneticoPromedio);
   }
 
+  if (var == "TEMPERATURA") {
+    return String(temperatura);
+  }
+  if (var == "TEMPERATURAMAX") {
+    return String(temperaturaMaximo);
+  }
+  if (var == "TEMPERATURAMIN") {
+    return String(temperaturaMinimo);
+  }
+  if (var == "TEMPERATURAPROM") {
+    return String(temperaturaPromedio);
+  }
+
+
   return String();
 }

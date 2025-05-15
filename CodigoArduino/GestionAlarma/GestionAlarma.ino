@@ -33,8 +33,8 @@ const unsigned int BAUD_RATE = 115200;
 noDelay pausa(PAUSA);
 
 //Configuración de conexión a internet
-const char* ssid = "Jalisco_2.4GHz";  //MEGACABLE-2E9F   IoT_ITSON    MEGACABLE-319E
-const char* password = "11223344";    //Uu5raDYY           lv323-iot   pGbKefc9
+const char* ssid = "IoT_ITSON";  //MEGACABLE-2E9F   IoT_ITSON    MEGACABLE-319E
+const char* password = "lv323-iot";    //Uu5raDYY           lv323-iot   pGbKefc9
 AsyncWebServer server(80);
 
 //COnfiguración de tiempo

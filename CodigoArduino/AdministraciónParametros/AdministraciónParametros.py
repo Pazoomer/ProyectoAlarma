@@ -16,13 +16,13 @@ class AlarmaGUI:
 
         # Intentar abrir puerto
         try:
-            self.ser = serial.Serial('COM6', 115200, timeout=1)
+            self.ser = serial.Serial('COM3', 115200, timeout=1)
             time.sleep(2)
             self.running = True
             threading.Thread(target=self.read_serial, daemon=True).start()
-            self.write_output("✅ Conexión Serial exitosa en COM6")
+            self.write_output("✅ Conexión Serial exitosa en COM3")
         except serial.SerialException as e:
-            self.write_output(f"❌ Error al abrir puerto COM6: {e}")
+            self.write_output(f"❌ Error al abrir puerto COM3: {e}")
 
     def create_widgets(self):
         frame = ttk.Frame(self.root)
@@ -32,7 +32,7 @@ class AlarmaGUI:
         ttk.Button(frame, text="Desactivar Alarma (off)", command=lambda: self.send_command("off")).grid(row=0, column=1, padx=5)
 
         ajustes = [
-            ("Movimiento (mov x)", "mov"),
+            ("Temperatura (tem x)", "tem"),
             ("Ruido (rui x)", "rui"),
             ("Luz (luz x)", "luz"),
             ("Volumen (vol x)", "vol"),

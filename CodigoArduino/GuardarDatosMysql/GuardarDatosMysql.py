@@ -48,18 +48,18 @@ try:
                 parts = line.split()
                 estado = parts[2]
                 ruido = parts[4]
-                movimiento = parts[6]
+                temperatura = parts[6]
                 magnetico = parts[8]
 
-                sql = "INSERT INTO datos_alarma (estado, ruido, movimiento, magnetico) VALUES (%s, %s, %s, %s)"
-                cursor.execute(sql, (estado, ruido, movimiento, magnetico))
+                sql = "INSERT INTO datos_alarma (estado, ruido, temperatura, magnetico) VALUES (%s, %s, %s, %s)"
+                cursor.execute(sql, (estado, ruido, temperatura, magnetico))
                 db.commit()
                 print("Datos guardados en MySQL")   
 
         # Si se pierde la conexión al puerto serial
         if not ser.is_open:
             print("Conexión al puerto serial perdida. Intentando reconectar...")
-            ser = connect_serial('COM6')
+            ser = connect_serial('COM3')
 
 except KeyboardInterrupt:
     print("Saliendo...")
