@@ -63,3 +63,44 @@ void despliegaCola(int *pCola, int nDatos) {
     Serial.println("]");
 
 }
+
+int insertaColaFloat(float *pCola, float dato, int tamCola) {
+    static int i = 0;
+    static bool primera = true;
+
+    // Inserta el dato en la cola
+    *(pCola + i) = dato;
+    i++;
+
+    // Bandera que indica que es la primera vez que se
+    // está llenando la cola
+    if (i == tamCola) primera = false;
+
+    // Si la cola se llena, empieza a sobreescribir
+    // los datos
+    i %= tamCola;
+
+    // Regresa el número de datos en la cola 
+    return primera ? i : tamCola;
+}
+
+float obtenPromedioMovilFloat(float *pCola, int nDatos) {
+    if (nDatos <= 0) return 0.0;
+
+    float suma = 0;
+    for (int i = 0; i < nDatos; i++)
+        suma += *(pCola + i);
+
+    return suma / nDatos;
+}
+
+void despliegaColaFloat(float *pCola, int nDatos) {
+    Serial.print("[");
+
+    for (int i = 0; i < nDatos - 1; i++) {
+        Serial.print(*(pCola + i), 2);  // muestra 2 decimales
+        Serial.print(", ");
+    }
+    Serial.print(*(pCola + nDatos - 1), 2);
+    Serial.println("]");
+}

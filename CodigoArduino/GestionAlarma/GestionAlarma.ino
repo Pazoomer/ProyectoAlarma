@@ -13,12 +13,16 @@
 #include "GestionDatos.h"
 #include "GestionRed.h"
 #include "ESPAsyncWebServer.h"
+#include "DHT.h"
+
+
 
 //Configuración de datos
 const unsigned int TAM_COLA = 25;
 int colaRuido[TAM_COLA];
-int colaMovimiento[TAM_COLA];
+////int colaMovimiento[TAM_COLA];
 int colaMagnetico[TAM_COLA];
+float colaTemperatura[TAM_COLA];
 const unsigned int N_DATOS = 2000;
 int dato = 1;
 int nDatos;
@@ -29,8 +33,8 @@ const unsigned int BAUD_RATE = 115200;
 noDelay pausa(PAUSA);
 
 //Configuración de conexión a internet
-const char* ssid = "MEGACABLE-319E";  //MEGACABLE-2E9F   IoT_ITSON    MEGACABLE-319E
-const char* password = "pGbKefc9";    //Uu5raDYY           lv323-iot   pGbKefc9
+const char* ssid = "Jalisco_2.4GHz";  //MEGACABLE-2E9F   IoT_ITSON    MEGACABLE-319E
+const char* password = "11223344";    //Uu5raDYY           lv323-iot   pGbKefc9
 AsyncWebServer server(80);
 
 //COnfiguración de tiempo
@@ -39,8 +43,9 @@ WiFiUDP ntpUDP;
 //Metodos a usar
 void actualizaLectura();
 int obtenRuido();
-int obtenMovimiento();
+////int obtenMovimiento();
 int obtenMagnetico();
+float obtenTemperatura();
 int obtenEstado();
 void revisarAlarma();
 void activarAlarma();
@@ -52,29 +57,40 @@ int ruidoMaximo = 0;
 int ruidoMinimo = 4095;
 int ruidoPromedio = 0;
 
-int movimiento = 0;
-int movimientoMaximo = 0;
-int movimientoMinimo = 4095;
-int movimientoPromedio = 0;
+//// int movimiento = 0;
+//// int movimientoMaximo = 0;
+//// int movimientoMinimo = 4095;
+//// int movimientoPromedio = 0;
+
 
 int magnetico = 0;
 int magneticoMaximo = 0;
 int magneticoMinimo = 4095;
 int magneticoPromedio = 0;
 
+float temperatura = 0.0;
+float temperaturaMaximo = -1000;
+float temperaturaMinimo = 1000;
+float temperaturaPromedio = 0.0;
+
 int estado = 0;  // 0=Desactivada, 1=Activada
 
 //Parametros ajustables (1-10)
 //Sensores
 int sensibilidadRuido = 10;
-int sensibilidadMovimiento = 5;
+////int sensibilidadMovimiento = 5;
+float sensibilidadTemperatura = 34.0;
 
 //Actuadores
 int volumenBuzzer = 15;
 int brilloLuz = 5;
 
 //Puertos
-const unsigned int sensorMovimiento = 4;
+// Sensor DHT
+#define DHTPIN 4       // Pin del sensor
+#define DHTTYPE DHT11  // Tipo de sensor
+DHT dht(DHTPIN, DHTTYPE);
+////const unsigned int sensorMovimiento = 4;
 const unsigned int SensorMagnetico = 35;
 const unsigned int sensorRuido = 34;
 const unsigned int buzzer = 25;
@@ -87,7 +103,7 @@ void setup() {
   Serial.println("Iniciando");
   delay(100);
 
-  pinMode(sensorMovimiento, INPUT);
+  ////pinMode(sensorMovimiento, INPUT);
   //Se cambio, por eso daba valores raros
   pinMode(SensorMagnetico, INPUT_PULLUP);
   pinMode(sensorRuido, INPUT);
@@ -97,6 +113,9 @@ void setup() {
 
   Serial.println("Conectandose a internet");
   conectaRedWiFi(ssid, password);
+
+  Serial.println("Iniciando sensor DHT");
+  dht.begin();
 
   Serial.println("Inicializando archivos internos");
   inicializaLittleFS();
@@ -141,15 +160,11 @@ void actualizaLectura() {
     ruidoMinimo = ruido;
   }
 
-  movimiento = obtenMovimiento();
-  nDatos = insertaCola(colaMovimiento, movimiento, TAM_COLA);
-  movimientoPromedio = obtenPromedioMovil(colaMovimiento, TAM_COLA);
-  if (movimiento > movimientoMaximo) {
-    movimientoMaximo = movimiento;
-  }
-  if (movimiento < movimientoMinimo) {
-    movimientoMinimo = movimiento;
-  }
+  //// movimiento = obtenMovimiento();
+  //// nDatos = insertaCola(colaMovimiento, movimiento, TAM_COLA);
+  //// movimientoPromedio = obtenPromedioMovil(colaMovimiento, TAM_COLA);
+  //// if (movimiento > movimientoMaximo) movimientoMaximo = movimiento;
+  //// if (movimiento < movimientoMinimo) movimientoMinimo = movimiento;
 
   magnetico = obtenMagnetico();
   nDatos = insertaCola(colaMagnetico, magnetico, TAM_COLA);
@@ -160,6 +175,13 @@ void actualizaLectura() {
   if (magnetico < magneticoMinimo) {
     magneticoMinimo = magnetico;
   }
+
+  temperatura = obtenTemperatura();
+  Serial.println("Temperatura: " + String(temperatura));
+  nDatos = insertaColaFloat(colaTemperatura, temperatura, TAM_COLA);
+  temperaturaPromedio = obtenPromedioMovilFloat(colaTemperatura, TAM_COLA);
+  if (temperatura > temperaturaMaximo) temperaturaMaximo = temperatura;
+  if (temperatura < temperaturaMinimo) temperaturaMinimo = temperatura;
 }
 
 /*
@@ -169,12 +191,21 @@ int obtenRuido() {
   return analogRead(sensorRuido);
 }
 
+float obtenTemperatura() {
+  float t = dht.readTemperature();
+  if (isnan(t)) {
+    Serial.println("Fallo al leer la temperatura");
+    return temperatura;
+  }
+  return t;
+}
+
 /*
 * Esta funcion obtiene el movimiento del sensor
 */
-int obtenMovimiento() {
-  return digitalRead(sensorMovimiento);
-}
+////int obtenMovimiento() {
+////  return digitalRead(sensorMovimiento);
+////}
 
 /*
 * Esta funcion obtiene el magnetismo del sensor
@@ -194,6 +225,9 @@ void revisarAlarma() {
   }*/
   //Comparar si los sensores cumplen la condición para activar la alarma
   if (ruido >= 2000) {
+    activarAlarma();
+  }
+   else if (temperatura >= sensibilidadTemperatura) {
     activarAlarma();
   }
   //else
@@ -247,19 +281,28 @@ void leerComando() {
       activarAlarma();
     } else if (comandoSerial.equalsIgnoreCase("off")) {
       desactivarAlarma();
-    } else if (comandoSerial.startsWith("mov ")) {
-      int val = comandoSerial.substring(4).toInt();
-      if (val >= 0 && val <= 10) {
-        sensibilidadMovimiento = val;
-        Serial.printf("Sensibilidad Movimiento ajustada a %d\n", val);
-      }
-    } else if (comandoSerial.startsWith("rui ")) {
+    } 
+    ////else if (comandoSerial.startsWith("mov ")) {
+    ////  int val = comandoSerial.substring(4).toInt();
+    ////  if (val >= 0 && val <= 10) {
+    ////    sensibilidadMovimiento = val;
+    ////    Serial.printf("Sensibilidad Movimiento ajustada a %d\n", val);
+    ////  }
+    ////} 
+    else if (comandoSerial.startsWith("rui ")) {
       int val = comandoSerial.substring(4).toInt();
       if (val >= 0 && val <= 10) {
         sensibilidadRuido = val;
         Serial.printf("Sensibilidad Ruido ajustada a %d\n", val);
       }
-    } else if (comandoSerial.startsWith("luz ")) {
+    }else if (comandoSerial.startsWith("temp ")) {
+      float val = comandoSerial.substring(5).toFloat();
+      if (val >= 0.0 && val <= 100.0) {
+        sensibilidadTemperatura = val;
+        Serial.printf("Sensibilidad Temperatura ajustada a %.2f\n", val);
+      } 
+    }
+    else if (comandoSerial.startsWith("luz ")) {
       int val = comandoSerial.substring(4).toInt();
       if (val >= 0 && val <= 10) {
         brilloLuz = val;
@@ -281,5 +324,9 @@ void leerComando() {
 * Envia los datos a un servidor local mysql
 */
 void mandarDatos() {
-  Serial.println("MYSQL ESTADO: " + String(estado) + " RUIDO: " + String(ruido) + " MOVIMIENTO: " + String(movimiento) + " MAGNETICO: " + String(magnetico));
+  Serial.println("MYSQL ESTADO: " + String(estado) + 
+  " RUIDO: " + String(ruido) + 
+  ////" MOVIMIENTO: " + String(movimiento) + 
+  " MAGNETICO: " +  String(magnetico) +
+  " TEMPERATURA: " + String(temperatura));
 }

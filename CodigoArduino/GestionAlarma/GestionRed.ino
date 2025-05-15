@@ -115,18 +115,18 @@ String processor(const String& var) {
     return String(ruidoPromedio);
   }
 
-  if (var == "MOVIMIENTO") {
-    return String(movimiento);
-  }
-  if (var == "MOVIMIENTOMAX") {
-    return String(movimientoMaximo);
-  }
-  if (var == "MOVIMIENTOMIN") {
-    return String(movimientoMinimo);
-  }
-  if (var == "MOVIMIENTOPROM") {
-    return String(movimientoPromedio);
-  }
+  //if (var == "MOVIMIENTO") {
+   // return String(movimiento);
+  //}
+  //if (var == "MOVIMIENTOMAX") {
+   // return String(movimientoMaximo);
+  //}
+  //if (var == "MOVIMIENTOMIN") {
+    //return String(movimientoMinimo);
+  //}
+  //if (var == "MOVIMIENTOPROM") {
+  //  return String(movimientoPromedio);
+  //}
 
   if (var == "MAGNETICO") {
     return String(magnetico);
