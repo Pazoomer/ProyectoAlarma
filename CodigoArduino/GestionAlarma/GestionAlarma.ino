@@ -24,13 +24,13 @@ int dato = 1;
 int nDatos;
 
 //Configuración
-const long PAUSA = 2000;
+const long PAUSA = 500;
 const unsigned int BAUD_RATE = 115200;
 noDelay pausa(PAUSA);
 
 //Configuración de conexión a internet
-const char* ssid = "IoT_ITSON";  //MEGACABLE-2E9F   IoT_ITSON
-const char* password = "lv323-iot";    //Uu5raDYY           lv323-iot
+const char* ssid = "MEGACABLE-319E";  //MEGACABLE-2E9F   IoT_ITSON    MEGACABLE-319E
+const char* password = "pGbKefc9";    //Uu5raDYY           lv323-iot   pGbKefc9
 AsyncWebServer server(80);
 
 //COnfiguración de tiempo
@@ -66,11 +66,11 @@ int estado = 0;  // 0=Desactivada, 1=Activada
 
 //Parametros ajustables (1-10)
 //Sensores
-int sensibilidadRuido = 1;
+int sensibilidadRuido = 10;
 int sensibilidadMovimiento = 5;
 
 //Actuadores
-int volumenBuzzer = 5;
+int volumenBuzzer = 15;
 int brilloLuz = 5;
 
 //Puertos
@@ -88,7 +88,8 @@ void setup() {
   delay(100);
 
   pinMode(sensorMovimiento, INPUT);
-  pinMode(SensorMagnetico, INPUT);
+  //Se cambio, por eso daba valores raros
+  pinMode(SensorMagnetico, INPUT_PULLUP);
   pinMode(sensorRuido, INPUT);
 
   pinMode(buzzer, OUTPUT);
@@ -113,6 +114,7 @@ void loop() {
       //Lee los sensores
       actualizaLectura();
 
+
       //Activa la alarma dependiendo de los datos sensados
       revisarAlarma();
 
@@ -129,6 +131,7 @@ void loop() {
 void actualizaLectura() {
 
   ruido = obtenRuido();
+  Serial.println("Ruido crudo: " + String(ruido));
   nDatos = insertaCola(colaRuido, ruido, TAM_COLA);
   ruidoPromedio = obtenPromedioMovil(colaRuido, TAM_COLA);
   if (ruido > ruidoMaximo) {
@@ -177,7 +180,7 @@ int obtenMovimiento() {
 * Esta funcion obtiene el magnetismo del sensor
 */
 int obtenMagnetico() {
-  return analogRead(SensorMagnetico);
+  return digitalRead(SensorMagnetico);
 }
 
 /*
@@ -190,14 +193,14 @@ void revisarAlarma() {
     return;
   }*/
   //Comparar si los sensores cumplen la condición para activar la alarma
-  if (ruido >= 1) {
+  if (ruido >= 2000) {
     activarAlarma();
   }
-  //else 
+  //else
   //if ((sensibilidadMovimiento/5) * movimiento < 2000) {
   //  activarAlarma();
-  //} else 
-  else if (magnetico < 2000) {
+  //} else
+  else if (magnetico < 1) {
     activarAlarma();
   } else {
     desactivarAlarma();

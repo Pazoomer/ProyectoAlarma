@@ -33,7 +33,7 @@ def connect_mysql():
             time.sleep(2)  # Espera 2 segundos antes de intentar nuevamente
 
 # Conectar al puerto serial
-ser = connect_serial('COM6')
+ser = connect_serial('COM3')
 
 # Conectar a la base de datos MySQL
 db, cursor = connect_mysql()
@@ -54,7 +54,7 @@ try:
                 sql = "INSERT INTO datos_alarma (estado, ruido, movimiento, magnetico) VALUES (%s, %s, %s, %s)"
                 cursor.execute(sql, (estado, ruido, movimiento, magnetico))
                 db.commit()
-                print("Datos guardados en MySQL")
+                print("Datos guardados en MySQL")   
 
         # Si se pierde la conexión al puerto serial
         if not ser.is_open:
