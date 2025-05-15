@@ -23,12 +23,12 @@ int colaRuido[TAM_COLA];
 ////int colaMovimiento[TAM_COLA];
 int colaMagnetico[TAM_COLA];
 float colaTemperatura[TAM_COLA];
-const unsigned int N_DATOS = 2000;
+const unsigned int N_DATOS = 10000;
 int dato = 1;
 int nDatos;
 
 //Configuración
-const long PAUSA = 500;
+const long PAUSA = 250;
 const unsigned int BAUD_RATE = 115200;
 noDelay pausa(PAUSA);
 
@@ -77,13 +77,13 @@ int estado = 0;  // 0=Desactivada, 1=Activada
 
 //Parametros ajustables (1-10)
 //Sensores
-int sensibilidadRuido = 10;
+//int sensibilidadRuido = 10;
 ////int sensibilidadMovimiento = 5;
-float sensibilidadTemperatura = 34.0;
+float sensibilidadTemperatura = 5;
 
 //Actuadores
 int volumenBuzzer = 15;
-int brilloLuz = 5;
+//int brilloLuz = 5;
 
 //Puertos
 // Sensor DHT
@@ -150,7 +150,6 @@ void loop() {
 void actualizaLectura() {
 
   ruido = obtenRuido();
-  Serial.println("Ruido crudo: " + String(ruido));
   nDatos = insertaCola(colaRuido, ruido, TAM_COLA);
   ruidoPromedio = obtenPromedioMovil(colaRuido, TAM_COLA);
   if (ruido > ruidoMaximo) {
@@ -177,7 +176,6 @@ void actualizaLectura() {
   }
 
   temperatura = obtenTemperatura();
-  Serial.println("Temperatura: " + String(temperatura));
   nDatos = insertaColaFloat(colaTemperatura, temperatura, TAM_COLA);
   temperaturaPromedio = obtenPromedioMovilFloat(colaTemperatura, TAM_COLA);
   if (temperatura > temperaturaMaximo) temperaturaMaximo = temperatura;
@@ -194,7 +192,6 @@ int obtenRuido() {
 float obtenTemperatura() {
   float t = dht.readTemperature();
   if (isnan(t)) {
-    Serial.println("Fallo al leer la temperatura");
     return temperatura;
   }
   return t;
@@ -225,9 +222,11 @@ void revisarAlarma() {
   }*/
   //Comparar si los sensores cumplen la condición para activar la alarma
   if (ruido >= 2000) {
+    Serial.println("Ruido activado");
     activarAlarma();
   }
-   else if (temperatura >= sensibilidadTemperatura) {
+   else if (temperatura >= 27*(sensibilidadTemperatura*.2)) {
+    Serial.println("Temperatura activado");
     activarAlarma();
   }
   //else
@@ -235,9 +234,8 @@ void revisarAlarma() {
   //  activarAlarma();
   //} else
   else if (magnetico < 1) {
+    Serial.println("Magentico activado");
     activarAlarma();
-  } else {
-    desactivarAlarma();
   }
 }
 
@@ -251,7 +249,7 @@ void activarAlarma() {
   estado = 1;
   //Activar el buzzer y luz
   analogWrite(buzzer, volumenBuzzer * 25);
-  analogWrite(luz, brilloLuz * 25);
+  analogWrite(luz, 125);
   Serial.println("Alarma activada");
 }
 
@@ -289,25 +287,12 @@ void leerComando() {
     ////    Serial.printf("Sensibilidad Movimiento ajustada a %d\n", val);
     ////  }
     ////} 
-    else if (comandoSerial.startsWith("rui ")) {
-      int val = comandoSerial.substring(4).toInt();
-      if (val >= 0 && val <= 10) {
-        sensibilidadRuido = val;
-        Serial.printf("Sensibilidad Ruido ajustada a %d\n", val);
-      }
-    }else if (comandoSerial.startsWith("temp ")) {
+   else if (comandoSerial.startsWith("temp ")) {
       float val = comandoSerial.substring(5).toFloat();
       if (val >= 0.0 && val <= 100.0) {
         sensibilidadTemperatura = val;
         Serial.printf("Sensibilidad Temperatura ajustada a %.2f\n", val);
       } 
-    }
-    else if (comandoSerial.startsWith("luz ")) {
-      int val = comandoSerial.substring(4).toInt();
-      if (val >= 0 && val <= 10) {
-        brilloLuz = val;
-        Serial.printf("Brillo Luz ajustado a %d\n", val);
-      }
     } else if (comandoSerial.startsWith("vol ")) {
       int val = comandoSerial.substring(4).toInt();
       if (val >= 0 && val <= 10) {
@@ -326,7 +311,8 @@ void leerComando() {
 void mandarDatos() {
   Serial.println("MYSQL ESTADO: " + String(estado) + 
   " RUIDO: " + String(ruido) + 
+  " TEMPERATURA: " + String(temperatura)+
   ////" MOVIMIENTO: " + String(movimiento) + 
-  " MAGNETICO: " +  String(magnetico) +
-  " TEMPERATURA: " + String(temperatura));
+  " MAGNETICO: " +  String(magnetico));
+  
 }

@@ -32,10 +32,8 @@ class AlarmaGUI:
         ttk.Button(frame, text="Desactivar Alarma (off)", command=lambda: self.send_command("off")).grid(row=0, column=1, padx=5)
 
         ajustes = [
-            ("Temperatura (tem x)", "tem"),
-            ("Ruido (rui x)", "rui"),
-            ("Luz (luz x)", "luz"),
-            ("Volumen (vol x)", "vol"),
+            ("Temperatura (temp x)", "temp"),
+            ("Volumen (vol x)", "vol")
         ]
 
         for label, cmd in ajustes:
