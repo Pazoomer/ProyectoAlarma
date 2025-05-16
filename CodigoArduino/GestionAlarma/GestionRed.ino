@@ -67,6 +67,12 @@ void configuraServidor() {
     request->send(LittleFS, "/promedio.html", "text/html",
                   false, processor);
   });
+  // Si se invoca al servidor con la URL: "direccionIP_ServidorWeb/u"
+  server.on("/u", HTTP_GET, [](AsyncWebServerRequest* request) {
+    // Despliega una página con el estado de la alarma y el causante
+    request->send(LittleFS, "/estado.html", "text/html",
+                  false, processor);
+  });
   // Invoca a la funcion noHallada() si se invoca al servidor con una URL inexistente
   server.onNotFound(noHallada);
   server.begin();
@@ -153,7 +159,20 @@ String processor(const String& var) {
   if (var == "TEMPERATURAPROM") {
     return String(temperaturaPromedio);
   }
-
-
+  if (var == "RESPONSABLE") {
+    return String(responsableAlarma);
+  }
+  if (var == "HORAACTIVACION") {
+    return String(horaActivacion);
+  }
+  if (var == "ARMADA") {
+    if(armada==0){
+      return "Desarmada";
+    }else if (armada==1){
+      return "Armada";
+    }else{
+      return "Desconocido";
+    }
+  }
   return String();
 }

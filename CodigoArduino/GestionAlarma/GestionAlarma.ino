@@ -15,8 +15,6 @@
 #include "ESPAsyncWebServer.h"
 #include "DHT.h"
 
-
-
 //Configuración de datos
 const unsigned int TAM_COLA = 25;
 int colaRuido[TAM_COLA];
@@ -33,12 +31,13 @@ const unsigned int BAUD_RATE = 115200;
 noDelay pausa(PAUSA);
 
 //Configuración de conexión a internet
-const char* ssid = "IoT_ITSON";  //MEGACABLE-2E9F   IoT_ITSON    MEGACABLE-319E
-const char* password = "lv323-iot";    //Uu5raDYY           lv323-iot   pGbKefc9
+const char* ssid = "IoT_ITSON";      //MEGACABLE-2E9F   IoT_ITSON    MEGACABLE-319E
+const char* password = "lv323-iot";  //Uu5raDYY           lv323-iot   pGbKefc9
 AsyncWebServer server(80);
 
-//COnfiguración de tiempo
+//Configuración de tiempo
 WiFiUDP ntpUDP;
+NTPClient timeClient(ntpUDP, "pool.ntp.org", -21600, 60000);  // -21600 = UTC-6 para Sonora
 
 //Metodos a usar
 void actualizaLectura();
@@ -74,6 +73,7 @@ float temperaturaMinimo = 1000;
 float temperaturaPromedio = 0.0;
 
 int estado = 0;  // 0=Desactivada, 1=Activada
+int armada = 0;  // 0=Desarmada, 1=Armada
 
 //Parametros ajustables (1-10)
 //Sensores
@@ -97,6 +97,8 @@ const unsigned int buzzer = 25;
 const unsigned int luz = 33;
 
 String comandoSerial = "";
+String responsableAlarma = "";
+String horaActivacion = "";
 
 void setup() {
   Serial.begin(BAUD_RATE);
@@ -127,7 +129,7 @@ void setup() {
 }
 
 void loop() {
-  if (pausa.update()) {
+  if (pausa.update() && armada == 1) {
     if (dato <= N_DATOS) {
 
       //Lee los sensores
@@ -223,10 +225,11 @@ void revisarAlarma() {
   //Comparar si los sensores cumplen la condición para activar la alarma
   if (ruido >= 2000) {
     Serial.println("Ruido activado");
+    responsableAlarma = "Ruido";
     activarAlarma();
-  }
-   else if (temperatura >= 27*(sensibilidadTemperatura*.2)) {
+  } else if (temperatura >= 27 * (sensibilidadTemperatura * .2)) {
     Serial.println("Temperatura activado");
+    responsableAlarma = "Temperatura";
     activarAlarma();
   }
   //else
@@ -235,6 +238,7 @@ void revisarAlarma() {
   //} else
   else if (magnetico < 1) {
     Serial.println("Magentico activado");
+    responsableAlarma = "Magnetico";
     activarAlarma();
   }
 }
@@ -246,11 +250,20 @@ void activarAlarma() {
   if (estado == 1) {
     return;
   }
+  // Actualiza la hora NTP
+  timeClient.update();
+  String hora = timeClient.getFormattedTime();
+  time_t epochTime = timeClient.getEpochTime();
+  struct tm* ptm = gmtime((time_t*)&epochTime);
+  int dia = ptm->tm_mday;
+  int mes = ptm->tm_mon + 1;
+  int año = ptm->tm_year + 1900;
   estado = 1;
   //Activar el buzzer y luz
   analogWrite(buzzer, volumenBuzzer * 25);
   analogWrite(luz, 125);
   Serial.println("Alarma activada");
+  horaActivacion = hora.c_str();
 }
 
 /*
@@ -265,6 +278,8 @@ void desactivarAlarma() {
   analogWrite(buzzer, 0);
   analogWrite(luz, 0);
   Serial.println("Alarma desactivada");
+  horaActivacion = "";
+  responsableAlarma = "";
 }
 
 /*
@@ -276,30 +291,33 @@ void leerComando() {
     comandoSerial.trim();
 
     if (comandoSerial.equalsIgnoreCase("on")) {
+      armada=1;
       activarAlarma();
     } else if (comandoSerial.equalsIgnoreCase("off")) {
       desactivarAlarma();
-    } 
-    ////else if (comandoSerial.startsWith("mov ")) {
-    ////  int val = comandoSerial.substring(4).toInt();
-    ////  if (val >= 0 && val <= 10) {
-    ////    sensibilidadMovimiento = val;
-    ////    Serial.printf("Sensibilidad Movimiento ajustada a %d\n", val);
-    ////  }
-    ////} 
-   else if (comandoSerial.startsWith("temp ")) {
+    } else if (comandoSerial.startsWith("temp ")) {
       float val = comandoSerial.substring(5).toFloat();
       if (val >= 0.0 && val <= 100.0) {
         sensibilidadTemperatura = val;
         Serial.printf("Sensibilidad Temperatura ajustada a %.2f\n", val);
-      } 
+      }
     } else if (comandoSerial.startsWith("vol ")) {
       int val = comandoSerial.substring(4).toInt();
       if (val >= 0 && val <= 10) {
         volumenBuzzer = val;
         Serial.printf("Volumen Buzzer ajustado a %d\n", val);
       }
-    } else {
+    } else if(comandoSerial.equalsIgnoreCase("arm")) {
+      if (armada==0){
+        armada=1;
+        Serial.println("Alarma armada");
+      }else{
+        armada=0;
+        Serial.println("Alarma desarmada");
+      }
+      desactivarAlarma();
+    } 
+    else {
       Serial.println("Comando no reconocido");
     }
   }
@@ -309,10 +327,7 @@ void leerComando() {
 * Envia los datos a un servidor local mysql
 */
 void mandarDatos() {
-  Serial.println("MYSQL ESTADO: " + String(estado) + 
-  " RUIDO: " + String(ruido) + 
-  " TEMPERATURA: " + String(temperatura)+
-  ////" MOVIMIENTO: " + String(movimiento) + 
-  " MAGNETICO: " +  String(magnetico));
-  
+  Serial.println("MYSQL ESTADO: " + String(estado) + " RUIDO: " + String(ruido) + " TEMPERATURA: " + String(temperatura) +
+                 ////" MOVIMIENTO: " + String(movimiento) +
+                 " MAGNETICO: " + String(magnetico));
 }

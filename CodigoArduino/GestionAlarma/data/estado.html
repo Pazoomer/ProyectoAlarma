@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8" />
+    <title>Estado</title>
+    <link rel="stylesheet" href="/style.css" />
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f9;
+            text-align: center;
+            padding: 2rem;
+        }
+
+        h1 {
+            color: #333;
+        }
+
+        ul {
+            list-style: none;
+            padding: 0;
+        }
+
+        li {
+            font-size: 1.2rem;
+            margin: 1rem 0;
+        }
+
+        img {
+            width: 150px;
+            margin: 1rem;
+            display: none;
+        }
+
+        .visible {
+            display: inline-block;
+        }
+
+        a {
+            display: inline-block;
+            margin-top: 1.5rem;
+            text-decoration: none;
+            color: white;
+            background-color: #007bff;
+            padding: 0.5rem 1rem;
+            border-radius: 5px;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>Estado de la alarma</h1>
+    <ul>
+        <li>Armada: <span id="armada">%ARMADA%</span></li>
+        <li>Estado: <span id="estado">%ESTADO%</span></li>
+        <li>Responsable: <span id="responsable">%RESPONSABLE%</span></li>
+        <li>Hora de activación: <span id="hora">%HORAACTIVACION%</span></li>
+    </ul>
+
+    <!-- Imágenes -->
+    <img id="img-good" src="/good.png" alt="Desactivada" />
+    <img id="img-bad" src="/bad2.png" alt="Activada" />
+    <img id="img-window" src="/window.png" alt="Sensor magnético" />
+    <img id="img-temp" src="/temp2.png" alt="Sensor de temperatura" />
+    <img id="img-sound" src="/sound.png" alt="Sensor de sonido" />
+
+    <br>
+    <a href="/">Volver</a>
+
+    <script>
+        const estado = document.getElementById("estado").textContent.trim();
+        const responsable = document.getElementById("responsable").textContent.trim();
+
+        // Oculta todas las imágenes primero
+        ["img-good", "img-bad", "img-window", "img-temp", "img-sound"].forEach(id => {
+            document.getElementById(id).classList.remove("visible");
+        });
+
+        // Mostrar imagen según el estado
+        if (estado === "Desactivada") {
+            document.getElementById("img-good").classList.add("visible");
+        } else if (estado === "Activada") {
+            document.getElementById("img-bad").classList.add("visible");
+        }
+
+        // Mostrar imagen del sensor
+        switch (responsable.toLowerCase()) {
+            case "magnetico":
+                document.getElementById("img-window").classList.add("visible");
+                break;
+            case "temperatura":
+                document.getElementById("img-temp").classList.add("visible");
+                break;
+            case "sonido":
+                document.getElementById("img-sound").classList.add("visible");
+                break;
+        }
+
+        // Cambiar título según el estado
+        const titulo = document.querySelector("h1");
+
+        if (estado === "Desarmada") {
+            titulo.textContent = "Alarma desarmada";
+        }
+        else if (estado === "Activada") {
+            titulo.textContent = "Intrusión detectada";
+        } else if (estado === "Desactivada") {
+            titulo.textContent = "Alarma armada en funcionamiento";
+        } 
+    </script>
+
+</body>
+
+</html>
